@@ -1,14 +1,14 @@
-# orioncli
+# sxt
 
-A minimal CLI for controlling [Orion browser](https://browser.kagi.com) from the shell or an agent.
+A minimal CLI for controlling macOS browsers from the shell or an agent.
 
-Orion exposes AppleScript and `do JavaScript` for browser automation. This wraps those into five orthogonal commands with consistent flags and tab-separated output — so the interesting workflows stay in the shell, not the tool.
+Supports **Orion** (default) and **Safari**. Any browser with a compatible AppleScript dictionary should work.
 
 ---
 
 ## Prerequisites
 
-In Orion: **Develop → Allow JavaScript from Apple Events**
+Enable **Develop → Allow JavaScript from Apple Events** in your browser.
 
 Without this, `read` and `js` will error with instructions.
 
@@ -18,25 +18,31 @@ Without this, `read` and `js` will error with instructions.
 
 ```sh
 # What's open?
-orion list
+sxt list
 
 # Read the current tab as markdown
-orion read
+sxt read
 
 # Read a specific tab
-orion list                          # find window ID and tab index
-orion read -w 29178 -t 3
+sxt list                          # find window ID and tab index
+sxt read -w 29178 -t 3
 
 # Run JS in a tab
-orion js "document.title"
-orion js "JSON.stringify([...document.querySelectorAll('h2')].map(h=>h.innerText))"
+sxt js "document.title"
+sxt js "JSON.stringify([...document.querySelectorAll('h2')].map(h=>h.innerText))"
 
 # Navigate and read
-orion nav https://example.com
-orion read
+sxt nav https://example.com
+sxt read
 
 # Open a new tab
-orion open https://example.com
+sxt open https://example.com
+
+# Close the current tab
+sxt close
+
+# Use Safari instead of Orion
+sxt -b Safari list
 ```
 
 ---
@@ -44,14 +50,15 @@ orion open https://example.com
 ## Commands
 
 ```
-orion list              list all windows and tabs (tab-separated)
-orion read              get page content as markdown
-orion js <code>         execute JavaScript, return result
-orion nav <url>         navigate a tab to URL
-orion open <url>        open URL in a new tab
+sxt list              list all windows and tabs (tab-separated)
+sxt read              get page content as markdown
+sxt js <code>         execute JavaScript, return result
+sxt nav <url>         navigate a tab to URL
+sxt open <url>        open URL in a new tab
+sxt close             close a tab
 ```
 
-**Flags (read, js, nav):**
+**Flags (read, js, nav, close):**
 
 ```
 -w <id>    window ID from list (default: front window)
@@ -65,7 +72,26 @@ orion open <url>        open URL in a new tab
               fields: window, front, tab, current, title, url
 ```
 
+**Browser selection:**
+
+```
+-b <name>     sxt app name (default: Orion; env: BROWSER_APP)
+```
+
 URL for `nav` and `open` may be piped via stdin.
+
+---
+
+## Browser selection
+
+```sh
+# one-off
+sxt -b Safari list
+
+# per-session default
+export BROWSER_APP=Safari
+sxt list
+```
 
 ---
 
@@ -88,28 +114,28 @@ window  front  tab  current  title                   url
 
 ```sh
 # All URLs open right now
-orion list -o url
+sxt list -o url
 
 # Titles and URLs for one window
-orion list -o tab,title,url | grep "^29178"
+sxt list -o tab,title,url | grep "^29178"
 
 # Open every GitHub URL in a new tab
-orion list -o url | grep github.com | while read -r url; do orion open "$url"; done
+sxt list -o url | grep github.com | while read -r url; do sxt open "$url"; done
 
 # Pick a tab to read with fzf
-orion list -o window,tab,title \
+sxt list -o window,tab,title \
   | fzf \
   | awk '{print "-w", $1, "-t", $2}' \
-  | xargs orion read
+  | xargs sxt read
 
 # Send current page to an API
-orion read | curl -s -X POST https://api.example.com/summarize -d @-
+sxt read | curl -s -X POST https://api.example.com/summarize -d @-
 
 # Extract all links from a page
-orion js "JSON.stringify([...document.querySelectorAll('a')].map(a=>a.href))"
+sxt js "JSON.stringify([...document.querySelectorAll('a')].map(a=>a.href))"
 
 # Navigate from stdin
-echo "https://example.com" | orion nav
+echo "https://example.com" | sxt nav
 ```
 
 ---
@@ -125,24 +151,30 @@ error: tab is suspended (WebKit freezes background tabs); use 'nav <url>' to loa
 Load the page in the front window first:
 
 ```sh
-orion nav https://example.com      # loads in front window, current tab
-orion read                         # reads it
+sxt nav https://example.com      # loads in front window, current tab
+sxt read                         # reads it
 ```
 
-**`read` returns rendered content.** It gets the post-JavaScript DOM, not raw source — so SPAs and dynamically loaded content are included. Use `orion js "document.documentElement.outerHTML"` if you need the raw HTML.
+**`read` returns rendered content.** It gets the post-JavaScript DOM, not raw source — so SPAs and dynamically loaded content are included. Use `sxt js "document.documentElement.outerHTML"` if you need the raw HTML.
+
+---
+
+## Name
+
+A sextant is a navigation instrument. Sailors used it to fix their position by the stars, Orion among them. It turns out *safari* is Swahili for journey. Seemed like the right tool for the trip.
 
 ---
 
 ## Install
 
 ```sh
-go install github.com/PhilShaughnes/orioncli@latest
+go install github.com/PhilShaughnes/sxt@latest
 ```
 
 Or build from source:
 
 ```sh
-git clone https://github.com/PhilShaughnes/orioncli
-cd orioncli
-go build -o orion .
+git clone https://github.com/PhilShaughnes/sxt
+cd sxt
+go build -o sxt .
 ```

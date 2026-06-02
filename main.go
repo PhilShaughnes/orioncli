@@ -164,7 +164,7 @@ end tell`, browser)
 }
 
 // expandAndSerialize expands all relative href/src attributes to absolute using
-// the sxtser's own URL resolution, then returns the full outerHTML.
+// the browser's own URL resolution, then returns the full outerHTML.
 const expandAndSerialize = `(function(){
 	document.querySelectorAll('[href]').forEach(function(el){try{el.setAttribute('href',el.href);}catch(e){}});
 	document.querySelectorAll('[src]').forEach(function(el){try{el.setAttribute('src',el.src);}catch(e){}});
